@@ -23,41 +23,29 @@ func (tx Transaction) IsCoinbase() bool {
 	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
 }
 
-// SetID sets ID of a transaction
-func (tx *Transaction) SetID() {
+// Serialize returns a serialized Transaction
+func (tx Transaction) Serialize() []byte {
 	var encoded bytes.Buffer
-	var hash [32]byte
 
 	enc := gob.NewEncoder(&encoded)
 	err := enc.Encode(tx)
 	if err != nil {
 		log.Panic(err)
 	}
-	hash = sha256.Sum256(encoded.Bytes())
-	tx.ID = hash[:]
+
+	return encoded.Bytes()
 }
 
-// TXInput represents a transaction input
-type TXInput struct {
-	Txid      []byte
-	Vout      int
-	ScriptSig string
-}
+// Hash returns the hash of the Transaction
+func (tx *Transaction) Hash() []byte {
+	var hash [32]byte
 
-// TXOutput represents a transaction output
-type TXOutput struct {
-	Value        int
-	ScriptPubKey string
-}
+	txCopy := *tx
+	txCopy.ID = []byte{}
 
-// CanUnlockOutputWith checks whether the address initiated the transaction
-func (in *TXInput) CanUnlockOutputWith(unlockingData string) bool {
-	return in.ScriptSig == unlockingData
-}
+	hash = sha256.Sum256(txCopy.Serialize())
 
-// CanBeUnlockedWith checks if the output can be unlocked with the provided data
-func (out *TXOutput) CanBeUnlockedWith(unlockingData string) bool {
-	return out.ScriptPubKey == unlockingData
+	return hash[:]
 }
 
 // NewCoinbaseTX creates a new coinbase transaction
@@ -66,10 +54,10 @@ func NewCoinbaseTX(to, data string) *Transaction {
 		data = fmt.Sprintf("Reward to '%s'", to)
 	}
 
-	txin := TXInput{[]byte{}, -1, data}
-	txout := TXOutput{subsidy, to}
-	tx := Transaction{nil, []TXInput{txin}, []TXOutput{txout}}
-	tx.SetID()
+	txin := TXInput{[]byte{}, -1, nil, []byte(data)}
+	txout := NewTXOutput(subsidy, to)
+	tx := Transaction{nil, []TXInput{txin}, []TXOutput{*txout}}
+	tx.ID = tx.Hash()
 
 	return &tx
 }
@@ -79,7 +67,13 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain) *Transactio
 	var inputs []TXInput
 	var outputs []TXOutput
 
-	acc, validOutputs := bc.FindSpendableOutputs(from, amount)
+	wallets, err := NewWallets()
+	if err != nil {
+		log.Panic(err)
+	}
+	wallet := wallets.GetWallet(from)
+	pubKeyHash := HashPubKey(wallet.PublicKey)
+	acc, validOutputs := bc.FindSpendableOutputs(pubKeyHash, amount)
 
 	if acc < amount {
 		log.Panic("ERROR: Not enough funds")
@@ -93,19 +87,20 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain) *Transactio
 		}
 
 		for _, out := range outs {
-			input := TXInput{txID, out, from}
+			input := TXInput{txID, out, nil, wallet.PublicKey}
 			inputs = append(inputs, input)
 		}
 	}
 
 	// Build a list of outputs
-	outputs = append(outputs, TXOutput{amount, to})
+	outputs = append(outputs, *NewTXOutput(amount, to))
 	if acc > amount {
-		outputs = append(outputs, TXOutput{acc - amount, from}) // a change
+		outputs = append(outputs, *NewTXOutput(acc-amount, from)) // a change
 	}
 
 	tx := Transaction{nil, inputs, outputs}
-	tx.SetID()
+	tx.ID = tx.Hash()
+
 
 	return &tx
 }
