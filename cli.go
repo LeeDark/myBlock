@@ -36,7 +36,7 @@ func (cli *CLI) Run() {
 
 	nodeID := os.Getenv("NODE_ID")
 	if nodeID == "" {
-		fmt.Printf("NODE_ID env. var is not set!")
+		fmt.Printf("NODE_ID env. var is not set!\n")
 		os.Exit(1)
 	}
 
