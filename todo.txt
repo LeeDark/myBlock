@@ -32,8 +32,30 @@
 	- Original Bitcoin paper: https://bitcoin.org/bitcoin.pdf
 	- Smart Contracts and Bitcoin: https://medium.com/@maraoz/smart-contracts-and-bitcoin-a5d61011d9b1
 	- SPV security: https://medium.com/@jonaldfyookball/why-every-bitcoin-user-should-understand-spv-security-520d1d45e0b9
+	// 7
+	- Block: Height
+	- Blockchain: NodeID, blockchain_nodeID.db, AddBlock/GetBlock, GetBlockHashes/GetBestHeight
+	- Transaction: dataToSign/dataToVerify, DeserializeTransaction
+	- Wallets: NodeID, wallet_nodeID.dat
 
 * Network
+	// 7
+	- NODE_ID, NodeID
+	- Blockchain network - P2P network prototype: https://en.bitcoin.it/wiki/Network
+	- Node Roles: Miner node, Full node, SPV
+	- Network simplification: Central node, Miner node, Wallet node
+	- DNS seed: https://bitcoin.org/en/glossary/dns-seed
+	- The Scenario
+	- commands: commandToBytes -> sendData, bytesToCommand -> extractCommand
+	- Bitcoin protocol: https://en.bitcoin.it/wiki/Protocol_documentation
+	- handleConnection, 7 commands:
+		- version,
+		- getblocks,
+		- inv (inventory),
+		- getdata (block, transaction),
+		- block
+		- tx
+		- addr
 
 * App
 	// 3
@@ -49,6 +71,9 @@
 	- listaddresses
 	// 6
 	- reindexutxo
+	// 7
+	- startnode, NODE_ID
+	- send option -mine
 
 * Math/Crypto
 	- Block hashing algorithm: https://en.bitcoin.it/wiki/Block_hashing_algorithm
