@@ -1,19 +1,34 @@
+* other repositories
+	15* naivechain (200-lines code): blockchain part?, network part?
+	* go-ethereum (Geth)
+	* go-ellaism: https://github.com/ellaism/go-ellaism
+	CA* Hyperledger Fabric
+	CA* Sia
+	CA* Dash: https://github.com/dashpay/godash
+	CB* gocoin: https://github.com/piotrnar/gocoin
+	? OpenBazaar/spvwallet
+		? fork: https://github.com/cpacia/BitcoinCash-Wallet
+	? go-blockchain: https://github.com/nvonpentz/go-blockchain
+
 * network
 	01* check network/server: scenario step-by-step, all commands/messages and problems
 	02* myBlock sync wizeNode
-	* 7 commands/messages and Bitcoin protocol: version, addr, inv, getdata, getblocks, tx, block
-	* P2P network prototypes
+	03* REST server (server_api) methods
+	13* 7 commands/messages and Bitcoin protocol: version, addr, inv, getdata, getblocks, tx, block
+	16* P2P network prototypes
+		14* naivechain
 	* next commands/messages: verack, notfound, getheaders, headers, getaddr, ping, pong, ?
 	* full list of commands/messages
 	* Bitcoin step-by-step: https://bitcoin.org/en/developer-guide
-		* Operating Modes
-		* P2P Network
+		11* Operating Modes
+		12* P2P Network
+
 * blockchain
-	03* math/crypto: current code review
-	* common standards/structures: current code review
+	04* math/crypto: current code review
+	10* common standards/structures: current code review
 	* Bitcoin step-by-step: https://bitcoin.org/en/developer-guide
-		04* Block Chain
-		05* Transactions
-		06* Wallets
-		07* Payment Processing
-		08* Mining
+		05* Block Chain
+		06* Transactions
+		07* Wallets
+		08* Payment Processing
+		09* Mining
