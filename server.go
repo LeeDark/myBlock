@@ -21,6 +21,36 @@ var knownNodes = []string{"localhost:3000"}
 var blocksInTransit = [][]byte{}
 var mempool = make(map[string]Transaction)
 
+func handleConnection(conn net.Conn, bc *Blockchain) {
+	request, err := ioutil.ReadAll(conn)
+	if err != nil {
+		log.Panic(err)
+	}
+	command := bytesToCommand(request[:commandLength])
+	fmt.Printf("Received %s command\n", command)
+
+	switch command {
+	case "addr":
+		handleAddr(request)
+	case "block":
+		handleBlock(request, bc)
+	case "inv":
+		handleInv(request, bc)
+	case "getblocks":
+		handleGetBlocks(request, bc)
+	case "getdata":
+		handleGetData(request, bc)
+	case "tx":
+		handleTx(request, bc)
+	case "version":
+		handleVersion(request, bc)
+	default:
+		fmt.Println("Unknown command!")
+	}
+
+	conn.Close()
+}
+
 type addr struct {
 	AddrList []string
 }
@@ -55,6 +85,31 @@ type verzion struct {
 	Version    int
 	BestHeight int
 	AddrFrom   string
+}
+
+// StartServer starts a node
+func StartServer(nodeID, minerAddress string) {
+	nodeAddress = fmt.Sprintf("localhost:%s", nodeID)
+	miningAddress = minerAddress
+	ln, err := net.Listen(protocol, nodeAddress)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer ln.Close()
+
+	bc := NewBlockchain(nodeID)
+
+	if nodeAddress != knownNodes[0] {
+		sendVersion(knownNodes[0], bc)
+	}
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Panic(err)
+		}
+		go handleConnection(conn, bc)
+	}
 }
 
 func commandToBytes(command string) []byte {
@@ -384,61 +439,6 @@ func handleVersion(request []byte, bc *Blockchain) {
 	// sendAddr(payload.AddrFrom)
 	if !nodeIsKnown(payload.AddrFrom) {
 		knownNodes = append(knownNodes, payload.AddrFrom)
-	}
-}
-
-func handleConnection(conn net.Conn, bc *Blockchain) {
-	request, err := ioutil.ReadAll(conn)
-	if err != nil {
-		log.Panic(err)
-	}
-	command := bytesToCommand(request[:commandLength])
-	fmt.Printf("Received %s command\n", command)
-
-	switch command {
-	case "addr":
-		handleAddr(request)
-	case "block":
-		handleBlock(request, bc)
-	case "inv":
-		handleInv(request, bc)
-	case "getblocks":
-		handleGetBlocks(request, bc)
-	case "getdata":
-		handleGetData(request, bc)
-	case "tx":
-		handleTx(request, bc)
-	case "version":
-		handleVersion(request, bc)
-	default:
-		fmt.Println("Unknown command!")
-	}
-
-	conn.Close()
-}
-
-// StartServer starts a node
-func StartServer(nodeID, minerAddress string) {
-	nodeAddress = fmt.Sprintf("localhost:%s", nodeID)
-	miningAddress = minerAddress
-	ln, err := net.Listen(protocol, nodeAddress)
-	if err != nil {
-		log.Panic(err)
-	}
-	defer ln.Close()
-
-	bc := NewBlockchain(nodeID)
-
-	if nodeAddress != knownNodes[0] {
-		sendVersion(knownNodes[0], bc)
-	}
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			log.Panic(err)
-		}
-		go handleConnection(conn, bc)
 	}
 }
 
