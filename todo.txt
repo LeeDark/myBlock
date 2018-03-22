@@ -1,6 +1,6 @@
 * network
-	* check network/server: scenario step-by-step, all commands/messages and problems
-	* myBlock sync wizeNode
+	01* check network/server: scenario step-by-step, all commands/messages and problems
+	02* myBlock sync wizeNode
 	* 7 commands/messages and Bitcoin protocol: version, addr, inv, getdata, getblocks, tx, block
 	* P2P network prototypes
 	* next commands/messages: verack, notfound, getheaders, headers, getaddr, ping, pong, ?
@@ -9,11 +9,11 @@
 		* Operating Modes
 		* P2P Network
 * blockchain
-	* math/crypto: current code review
+	03* math/crypto: current code review
 	* common standards/structures: current code review
 	* Bitcoin step-by-step: https://bitcoin.org/en/developer-guide
-		* Block Chain
-		* Transactions
-		* Wallets
-		* Payment Processing
-		* Mining
+		04* Block Chain
+		05* Transactions
+		06* Wallets
+		07* Payment Processing
+		08* Mining
