@@ -1,0 +1,72 @@
+* Blockchain
+	// 1-2
+M	- Block hashing algorithm: https://en.bitcoin.it/wiki/Block_hashing_algorithm
+M	- Proof of work: https://en.bitcoin.it/wiki/Proof_of_work
+M	- Hashcash: https://en.bitcoin.it/wiki/Hashcash
+	// 3 = Persistence: serialization, database, iterator
+	- Bitcoin Core Data Storage: https://en.bitcoin.it/wiki/Bitcoin_Core_0.11_(ch_2):_Data_Storage
+	- boltdb: https://github.com/boltdb/bolt
+	- encoding/gob
+	// 4
+m	- Transaction: https://en.bitcoin.it/wiki/Transaction
+M	- Merkle tree: https://en.bitcoin.it/wiki/Protocol_documentation#Merkle_Trees
+	- Coinbase: https://en.bitcoin.it/wiki/Coinbase
+	* Script: https://en.bitcoin.it/wiki/Script
+	// 5
+M	- Public-key Cryptography: https://en.wikipedia.org/wiki/Public-key_cryptography
+M	- Digital Signatures: https://en.wikipedia.org/wiki/Digital_signature
+M	- Elliptic Curve Cryptography:
+		- https://en.wikipedia.org/wiki/Elliptic_curve/
+		- https://en.wikipedia.org/wiki/Elliptic_curve_cryptography
+		- https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
+		- http://andrea.corbellini.name/2015/05/17/elliptic-curve-cryptography-a-gentle-introduction/
+m	- Bitcoin Addesses:
+		- https://en.bitcoin.it/wiki/Technical_background_of_version_1_Bitcoin_addresses
+		- https://en.bitcoin.it/wiki/Address
+M	- Base58: https://en.bitcoin.it/wiki/Base58Check_encoding
+	- Trimmed Transaction copy: https://en.bitcoin.it/wiki/File:Bitcoin_OpCheckSig_InDetail.png
+M	- Sign/Verify Transaction
+	// 6
+m	- UTXO Set: https://en.bitcoin.it/wiki/Bitcoin_Core_0.11_(ch_2):_Data_Storage#The_UTXO_set_.28chainstate_leveldb.29
+M	- Merkle tree: https://en.bitcoin.it/wiki/Protocol_documentation#Merkle_Trees
+	- Original Bitcoin paper: https://bitcoin.org/bitcoin.pdf
+	- Smart Contracts and Bitcoin: https://medium.com/@maraoz/smart-contracts-and-bitcoin-a5d61011d9b1
+	- SPV security: https://medium.com/@jonaldfyookball/why-every-bitcoin-user-should-understand-spv-security-520d1d45e0b9
+
+* Network
+
+* App
+	// 3
+	- flag
+	- printchain
+	- addblock
+	// 4
+	- createblockchain
+	- getbalance
+	- send
+	// 5
+	- createwallet
+	- listaddresses
+	// 6
+	- reindexutxo
+
+* Math/Crypto
+M	- Block hashing algorithm: https://en.bitcoin.it/wiki/Block_hashing_algorithm
+M	- Proof of work: https://en.bitcoin.it/wiki/Proof_of_work
+M	- Hashcash: https://en.bitcoin.it/wiki/Hashcash
+m	- Transaction: https://en.bitcoin.it/wiki/Transaction
+M	- Merkle tree: https://en.bitcoin.it/wiki/Protocol_documentation#Merkle_Trees
+M	- Public-key Cryptography: https://en.wikipedia.org/wiki/Public-key_cryptography
+M	- Digital Signatures: https://en.wikipedia.org/wiki/Digital_signature
+M	- Elliptic Curve Cryptography:
+		- https://en.wikipedia.org/wiki/Elliptic_curve/
+		- https://en.wikipedia.org/wiki/Elliptic_curve_cryptography
+		- https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
+		- http://andrea.corbellini.name/2015/05/17/elliptic-curve-cryptography-a-gentle-introduction/
+m	- Bitcoin Addesses:
+		- https://en.bitcoin.it/wiki/Technical_background_of_version_1_Bitcoin_addresses
+		- https://en.bitcoin.it/wiki/Address
+M	- Base58: https://en.bitcoin.it/wiki/Base58Check_encoding
+M	- Sign/Verify Transaction
+m	- UTXO Set: https://en.bitcoin.it/wiki/Bitcoin_Core_0.11_(ch_2):_Data_Storage#The_UTXO_set_.28chainstate_leveldb.29
+M	- Merkle tree: https://en.bitcoin.it/wiki/Protocol_documentation#Merkle_Trees
