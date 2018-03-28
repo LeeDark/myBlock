@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/boltdb/bolt"
 )
@@ -263,6 +264,16 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 	}
 
 	return blocks
+}
+
+func (bc *Blockchain) String() string {
+	var lines []string
+	lines = append(lines, "[")
+	for _, hash := range bc.GetBlockHashes() {
+		lines = append(lines, fmt.Sprintf("%x", hash))
+	}
+	lines = append(lines, "]")
+	return strings.Join(lines, "\n")
 }
 
 // MineBlock mines a new block with the provided transactions
