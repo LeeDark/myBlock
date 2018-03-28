@@ -15,6 +15,7 @@ import (
 const protocol = "tcp"
 const nodeVersion = 1
 const commandLength = 12
+const timeFormat = "03:04:05.000000"
 
 //var nodeAddress string
 //var miningAddress string
@@ -79,8 +80,8 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 		log.Panic(err)
 	}
 	command := bytesToCommand(request[:commandLength])
-	nanonow := time.Now().Format(time.RFC3339Nano)
-	fmt.Printf("nodeID: %s, %s: Received %s command\n", s.nodeAddress, nanonow, command)
+	nanonow := time.Now().Format(timeFormat)
+	fmt.Printf("nodeID: %s, %s: Received %s command\n", s.nodeID, nanonow, command)
 
 	switch command {
 	case "addr":
@@ -295,7 +296,8 @@ func (s *TCPServer) handleAddr(request []byte) {
 	}
 
 	knownNodes = append(knownNodes, payload.AddrList...)
-	fmt.Printf("There are %d known nodes now!\n", len(knownNodes))
+	nanonow := time.Now().Format(timeFormat)
+	fmt.Printf("nodeID: %s, %s: There are %d known nodes now!\n", s.nodeID, nanonow, len(knownNodes))
 	requestBlocks(s.nodeAddress)
 }
 
@@ -313,10 +315,11 @@ func (s *TCPServer) handleBlock(request []byte) {
 	blockData := payload.Block
 	block := DeserializeBlock(blockData)
 
-	fmt.Printf("nodeID: %s, Recevied a new block!\n", s.nodeAddress)
+	nanonow := time.Now().Format(timeFormat)
+	fmt.Printf("nodeID: %s, %s: Received a new block!\n", s.nodeID, nanonow)
 	s.bc.AddBlock(block)
 
-	fmt.Printf("Added block %x\n", block.Hash)
+	fmt.Printf("nodeID: %s, %s: Added block %x\n", s.nodeID, nanonow, block.Hash)
 
 	if len(s.blocksInTransit) > 0 {
 		blockHash := s.blocksInTransit[0]
@@ -340,8 +343,9 @@ func (s *TCPServer) handleInv(request []byte) {
 		log.Panic(err)
 	}
 
-	fmt.Printf("Recevied inventory with %d %s\n", len(payload.Items), payload.Type)
-	fmt.Printf("len(mempool): %d\n", len(s.mempool))
+	nanonow := time.Now().Format(timeFormat)
+	fmt.Printf("nodeID: %s, %s: Received inventory with %d %s\n", s.nodeID, nanonow, len(payload.Items), payload.Type)
+	//fmt.Printf("len(mempool): %d\n", len(s.mempool))
 
 	if payload.Type == "block" {
 		s.blocksInTransit = payload.Items
@@ -379,7 +383,6 @@ func (s *TCPServer) handleGetBlocks(request []byte) {
 	}
 
 	blocks := s.bc.GetBlockHashes()
-	fmt.Printf("blocks: %s\n", s.bc)
 	sendInv(payload.AddrFrom, s.nodeAddress, "block", blocks)
 }
 
@@ -428,7 +431,7 @@ func (s *TCPServer) handleTx(request []byte) {
 	s.mempool[hex.EncodeToString(tx.ID)] = tx
 
 	if s.nodeAddress == knownNodes[0] {
-		fmt.Printf("nodeAddress: %s, knownNodes: %v\n", s.nodeAddress, knownNodes)
+		fmt.Printf("nodeID: %s, knownNodes: %v\n", s.nodeID, knownNodes)
 		for _, node := range knownNodes {
 			if node != s.nodeAddress && node != payload.AddFrom {
 				sendInv(node, s.nodeAddress, "tx", [][]byte{tx.ID})
@@ -460,7 +463,8 @@ func (s *TCPServer) handleTx(request []byte) {
 			UTXOSet := UTXOSet{s.bc}
 			UTXOSet.Reindex()
 
-			fmt.Println("New block is mined!")
+			nanonow := time.Now().Format(timeFormat)
+			fmt.Println("nodeID: %s, %s: New block is mined!", s.nodeID, nanonow)
 
 			for _, tx := range txs {
 				txID := hex.EncodeToString(tx.ID)

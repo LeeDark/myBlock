@@ -240,7 +240,7 @@ func TestScenario1(t *testing.T) {
 
 	go runCommand2("step2a") // create three wallets
 	<-done2
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(2000 * time.Millisecond)
 
 	go runCommand1("step1c") // send some coins from CENTRAL to WALLETS with immediately mining
 	<-done1
@@ -252,7 +252,7 @@ func TestScenario1(t *testing.T) {
 	server0 := NewServer("3000", "")
 	go func() {
 		defer wg.Done()
-		t.Logf("Starting node %s\n", 3000)
+		t.Log("Starting node 3000")
 		server0.Start()
 	}()
 
@@ -265,7 +265,7 @@ func TestScenario1(t *testing.T) {
 	server1 := NewServer("3001", "")
 	go func() {
 		defer wg.Done()
-		t.Logf("Starting node %s\n", 3001)
+		t.Log("Starting node 3001")
 		server1.Start()
 	}()
 
