@@ -6,12 +6,13 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"math/big"
+	"strings"
+
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 	"log"
-	"math/big"
-	"strings"
 )
 
 const subsidy = 10
@@ -78,7 +79,6 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transac
 		if err != nil {
 			log.Panic(err)
 		}
-
 		signature := append(r.Bytes(), s.Bytes()...)
 
 		tx.Vin[inID].Signature = signature
@@ -180,6 +180,7 @@ func NewCoinbaseTX(to, data string) *Transaction {
 		if err != nil {
 			log.Panic(err)
 		}
+
 		data = fmt.Sprintf("%x", randData)
 	}
 
@@ -233,10 +234,12 @@ func NewUTXOTransaction(wallet *Wallet, to string, amount int, UTXOSet *UTXOSet)
 // DeserializeTransaction deserializes a transaction
 func DeserializeTransaction(data []byte) Transaction {
 	var transaction Transaction
+
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	err := decoder.Decode(&transaction)
 	if err != nil {
 		log.Panic(err)
 	}
+
 	return transaction
 }

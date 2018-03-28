@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"time"
 )
 
 const protocol = "tcp"
@@ -27,7 +28,8 @@ func handleConnection(conn net.Conn, bc *Blockchain) {
 		log.Panic(err)
 	}
 	command := bytesToCommand(request[:commandLength])
-	fmt.Printf("Received %s command\n", command)
+	nanonow := time.Now().Format(time.RFC3339Nano)
+	fmt.Printf("%s: Received %s command\n", nanonow, command)
 
 	switch command {
 	case "addr":
@@ -282,6 +284,7 @@ func handleInv(request []byte, bc *Blockchain) {
 	}
 
 	fmt.Printf("Recevied inventory with %d %s\n", len(payload.Items), payload.Type)
+	fmt.Printf("len(mempool): %d\n", len(mempool))
 
 	if payload.Type == "block" {
 		blocksInTransit = payload.Items
@@ -367,14 +370,17 @@ func handleTx(request []byte, bc *Blockchain) {
 	mempool[hex.EncodeToString(tx.ID)] = tx
 
 	if nodeAddress == knownNodes[0] {
+		fmt.Printf("nodeAddress: %s, knownNodes: %v\n", nodeAddress, knownNodes)
 		for _, node := range knownNodes {
 			if node != nodeAddress && node != payload.AddFrom {
 				sendInv(node, "tx", [][]byte{tx.ID})
 			}
 		}
 	} else {
-		if len(mempool) >= 2 && len(miningAddress) > 0 {
+		fmt.Printf("miningAddress: %s, len(mempool): %d\n", miningAddress, len(mempool))
+		if len(mempool) >= 1 && len(miningAddress) > 0 {
 		MineTransactions:
+			fmt.Println("MineTransactions...")
 			var txs []*Transaction
 
 			for id := range mempool {
