@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
 	"testing"
 )
@@ -11,7 +13,63 @@ var (
 	done1, done2, done3    chan bool
 )
 
+func clearData(nodeID string) {
+	err := os.Remove("blockchain_" + nodeID + ".db")
+	if err != nil {
+	}
+	err = os.Remove("wallet_" + nodeID + ".dat")
+	if err != nil {
+	}
+}
+
+func createWallet(nodeID string) string {
+	wallets, _ := NewWallets(nodeID)
+	address := wallets.CreateWallet()
+	wallets.SaveToFile(nodeID)
+	return address
+}
+
+func createBlockchain(t *testing.T, address, nodeID string) {
+	if !ValidateAddress(address) {
+		t.Fatal("ERROR: Address is not valid")
+	}
+	bc := CreateBlockchain(address, nodeID)
+	defer bc.db.Close()
+
+	UTXOSet := UTXOSet{bc}
+	UTXOSet.Reindex()
+
+	t.Log("Blockchain creating: Done!")
+}
+
+func printChain(t *testing.T, bc *Blockchain) {
+	//bc := NewBlockchain(testNodeID)
+	//defer bc.db.Close()
+
+	bci := bc.Iterator()
+
+	for {
+		block := bci.Next()
+
+		t.Logf("============ Block %x ============\n", block.Hash)
+		t.Logf("Height: %d\n", block.Height)
+		t.Logf("Prev. block: %x\n", block.PrevBlockHash)
+		pow := NewProofOfWork(block)
+		t.Logf("PoW: %s\n\n", strconv.FormatBool(pow.Validate()))
+		for _, tx := range block.Transactions {
+			t.Log(tx)
+		}
+		t.Logf("\n\n")
+
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+}
+
 func TestScenario1(t *testing.T) {
+	clearData("3000")
+
 	input1 := make(chan string)
 	defer close(input1)
 	input2 := make(chan string)
@@ -30,6 +88,8 @@ func TestScenario1(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
+		var nodeID = "3000"
+		var walletAddress string
 		for {
 			value := <-input1
 			fmt.Println("node1:", value)
@@ -38,10 +98,26 @@ func TestScenario1(t *testing.T) {
 			if value == "exit" {
 				break
 			}
+			switch value {
+			case "step1a":
+				// create a wallet and a new blockchain
+				walletAddress = createWallet(nodeID)
+				t.Logf("Wallet address: %s\n", walletAddress)
+				createBlockchain(t, walletAddress, nodeID)
+
+				bc := NewBlockchain(nodeID)
+				defer bc.db.Close()
+				t.Logf("Blockchain TIP: %x\n", bc.tip)
+				printChain(t, bc)
+				t.Log("Passed")
+			default:
+				fmt.Println("wrong command")
+			}
 		}
 	}()
 	go func() {
 		defer wg.Done()
+		//var nodeID = "3001"
 		for {
 			value := <-input2
 			fmt.Println("node2:", value)
@@ -75,21 +151,23 @@ func TestScenario1(t *testing.T) {
 		input3 <- command
 	}
 
-	// command 1: to 1
-	go runCommand1("hello 1")
+	go runCommand1("step1a") // create a wallet and a new blockchain
 	<-done1
 
-	// command 2: to 2
-	go runCommand2("hello 2")
-	<-done2
+	//go runCommand1("step1b") // copy blockchain as genesis blockchain
+	//<-done1
 
-	// command 3: to 1
-	go runCommand1("hello 3")
+	//go runCommand2("step2a") // create three wallets
+	//<-done1
+
+	//go runCommand1("step1c") // send some coins from CENTRAL to WALLETS with immediately mining
+	//<-done1
+
+	go runCommand1("step1d") // start NODE_ID=3000 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
 	<-done1
 
-	// command 4: to 3
-	go runCommand3("hello 4")
-	<-done3
+	go runCommand1("step1z") // stop NODE_ID=3000 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
+	<-done1
 
 	// stop1
 	go runCommand1("exit")
