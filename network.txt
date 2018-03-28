@@ -1,0 +1,108 @@
+* Scenario in details
+	* 0: prepare NODE_ID=3000 as CENTRAL
+		- 0: export NODE_ID=3000
+		- 0: create a wallet and a new blockchain
+			- export CENTRAL_ADDRESS=`./myBlock createwallet | cut -f2 -d':'`
+			- ./myBlock createblockchain -address $CENTRAL_ADDRESS
+		- 0: copy blockchain as genesis blockchain
+			- cp blockchain_3000.db blockchain_genesis.db 
+	* 1: prepare NODE_ID=3001 as WALLETS
+		- 1: export NODE_ID=3001
+		- 1: create three wallets
+			- export WALLET1_ADDRESS=`./myBlock createwallet | cut -f2 -d':'`
+			- export WALLET2_ADDRESS=`./myBlock createwallet | cut -f2 -d':'`
+			- export WALLET3_ADDRESS=`./myBlock createwallet | cut -f2 -d':'`
+	* 0: send some coins from CENTRAL to WALLETS with immediately mining
+		- 0: ./myBlock send -from $CENTRAL_ADDRESS -to $WALLET1_ADDRESS -amount 10 -mine
+		- 0: ./myBlock send -from $CENTRAL_ADDRESS -to $WALLET2_ADDRESS -amount 10 -mine
+	* 0: start NODE_ID=3000 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
+		- 0: ./myBlock startnode
+	----------
+	* 1: copy genesis blockchain as blockchain for NODE_ID=3001
+		- 1: cp blockchain_genesis.db blockchain_3001.db
+	* 1: start NODE_ID=3001
+		- 1: ./myBlock startnode
+		- it will download all the blocks from CENTRAL
+		
+		...
+			Starting node 3001
+			Received version command
+			Received inv command
+			Recevied inventory with 3 block
+			Received block command
+			Recevied a new block!
+			Added block 0000d6dac1de7dc944a12f9eeb76eb8d3f53404991410d4a724aa15650c6644f
+			Received block command
+			Recevied a new block!
+			Added block 0000f191f60a6a9f68db55fb04eb3951f50354921eac6069932aeb24b1b7d62e
+			Received block command
+			Recevied a new block!
+			Added block 0000542900e34a321b88f16a1d3471f5b51d57c6a1fe2d5c393b08a32574a946
+		...
+			Starting node 3000
+			Received version command
+			Received getblocks command
+			Received getdata command
+			Received getdata command
+			Received getdata command
+		
+	* 1: stop NODE_ID=3001
+	* 1: check the balances
+		- 1: ./myBlock getbalance -address $WALLET1_ADDRESS
+		- 1: ./myBlock getbalance -address $WALLET2_ADDRESS
+		- 1: ./myBlock getbalance -address $CENTRAL_ADDRESS
+		
+	----------
+	* 2: prepare NODE_ID=3002 as MINER
+		- 2: export NODE_ID=3002
+		- 2: export MINER_ADDRESS=`./myBlock createwallet | cut -f2 -d':'`
+		- 2: cp blockchain_genesis.db blockchain_3002.db
+	* 2: start NODE_ID=3002
+		- 2: ./myBlock startnode -miner $MINER_ADDRESS
+		
+		...
+			Starting node 3002
+			Mining is on. Address to receive rewards:  13oeLV3RZ1Ci1wWimhBBNkqR1g96TGkwr8
+			Received version command
+			Received inv command
+			Recevied inventory with 3 block
+			Received block command
+			Recevied a new block!
+			Added block 0000d6dac1de7dc944a12f9eeb76eb8d3f53404991410d4a724aa15650c6644f
+			Received block command
+			Recevied a new block!
+			Added block 0000f191f60a6a9f68db55fb04eb3951f50354921eac6069932aeb24b1b7d62e
+			Received block command
+			Recevied a new block!
+			Added block 0000542900e34a321b88f16a1d3471f5b51d57c6a1fe2d5c393b08a32574a946
+		...
+			Received version command
+			Received getblocks command
+			Received getdata command
+			Received getdata command
+			Received getdata command
+	
+	----------
+	* 1: send some coins
+		- 1: ./myBlock send -from $WALLET1_ADDRESS -to $WALLET3_ADDRESS -amount 2
+		- 1: ./myBlock send -from WALLET2_ADDRESS -to WALLET3_ADDRESS -amount 3
+	* 2: switch quickly
+		- 2: see it mining a new block
+		
+		...
+			Received inv command
+			Recevied inventory with 1 tx
+			Received tx command
+			
+	* 0: swithc quickly
+		- 0: also check it
+		
+		...
+			Received tx command
+			localhost:3001 is not available
+			Received getdata command
+		
+	* 1: start NODE_ID=3001
+		- 1: ./myBlock startnode
+	* 1: stop NODE_ID=3001 and check balances
+	
