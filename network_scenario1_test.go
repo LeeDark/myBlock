@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 )
 
 var (
@@ -13,7 +15,15 @@ var (
 	done1, done2, done3    chan bool
 )
 
-func clearData(nodeID string) {
+func nclearData() {
+	err := os.Remove("blockchain_genesis.db")
+	if err != nil {
+	}
+	clearNodeData("3000")
+	clearNodeData("3001")
+}
+
+func clearNodeData(nodeID string) {
 	err := os.Remove("blockchain_" + nodeID + ".db")
 	if err != nil {
 	}
@@ -22,14 +32,14 @@ func clearData(nodeID string) {
 	}
 }
 
-func createWallet(nodeID string) string {
+func ncreateWallet(nodeID string) string {
 	wallets, _ := NewWallets(nodeID)
 	address := wallets.CreateWallet()
 	wallets.SaveToFile(nodeID)
 	return address
 }
 
-func createBlockchain(t *testing.T, address, nodeID string) {
+func ncreateBlockchain(t *testing.T, address, nodeID string) {
 	if !ValidateAddress(address) {
 		t.Fatal("ERROR: Address is not valid")
 	}
@@ -42,10 +52,48 @@ func createBlockchain(t *testing.T, address, nodeID string) {
 	t.Log("Blockchain creating: Done!")
 }
 
-func printChain(t *testing.T, bc *Blockchain) {
-	//bc := NewBlockchain(testNodeID)
-	//defer bc.db.Close()
+func copyFile(src string, dst string) {
+	data, err := ioutil.ReadFile(src)
+	if err != nil {
+	}
+	err = ioutil.WriteFile(dst, data, 0644)
+	if err != nil {
+	}
+}
 
+func nsendTransaction(t *testing.T, bc *Blockchain, from, to string, amount int, nodeID string, mineNow bool) {
+	if !ValidateAddress(from) {
+		t.Fatal("ERROR: Sender address is not valid")
+	}
+	if !ValidateAddress(to) {
+		t.Fatal("ERROR: Recipient address is not valid")
+	}
+
+	UTXOSet := UTXOSet{bc}
+
+	wallets, err := NewWallets(nodeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wallet := wallets.GetWallet(from)
+
+	tx := NewUTXOTransaction(&wallet, to, amount, &UTXOSet)
+
+	t.Logf("knownNodes: %v\n", knownNodes)
+	if mineNow {
+		cbTx := NewCoinbaseTX(from, "")
+		txs := []*Transaction{cbTx, tx}
+
+		newBlock := bc.MineBlock(txs)
+		UTXOSet.Update(newBlock)
+	} else {
+		sendTx(knownNodes[0], nodeID, tx)
+	}
+
+	t.Log("Success!")
+}
+
+func nprintChain(t *testing.T, bc *Blockchain) {
 	bci := bc.Iterator()
 
 	for {
@@ -68,7 +116,7 @@ func printChain(t *testing.T, bc *Blockchain) {
 }
 
 func TestScenario1(t *testing.T) {
-	clearData("3000")
+	nclearData()
 
 	input1 := make(chan string)
 	defer close(input1)
@@ -86,38 +134,53 @@ func TestScenario1(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(3)
 
+	var centralAddress string
+	var walletAddress1, walletAddress2, walletAddress3 string
+
 	go func() {
 		defer wg.Done()
 		var nodeID = "3000"
-		var walletAddress string
+		//var bc *Blockchain
 		for {
 			value := <-input1
 			fmt.Println("node1:", value)
 
 			done1 <- true
 			if value == "exit" {
+				//bc.db.Close()
 				break
 			}
 			switch value {
 			case "step1a":
 				// create a wallet and a new blockchain
-				walletAddress = createWallet(nodeID)
-				t.Logf("Wallet address: %s\n", walletAddress)
-				createBlockchain(t, walletAddress, nodeID)
+				centralAddress = ncreateWallet(nodeID)
+				t.Logf("centralAddress: %s\n", centralAddress)
+				ncreateBlockchain(t, centralAddress, nodeID)
 
 				bc := NewBlockchain(nodeID)
-				defer bc.db.Close()
 				t.Logf("Blockchain TIP: %x\n", bc.tip)
-				printChain(t, bc)
-				t.Log("Passed")
+				//nprintChain(t, bc)
+				bc.db.Close()
+			case "step1b":
+				copyFile("blockchain_3000.db", "blockchain_genesis.db")
+			case "step1c": //send some coins from CENTRAL to WALLETS with immediately mining
+				bc := NewBlockchain(nodeID)
+				nsendTransaction(t, bc, centralAddress, walletAddress1, 10, nodeID, true)
+				nsendTransaction(t, bc, centralAddress, walletAddress2, 10, nodeID, true)
+				//nprintChain(t, bc)
+				bc.db.Close()
+			case "step1d":
+				// start NODE_ID=3000
+			case "step1z":
+				// stop NODE_ID=3000
 			default:
-				fmt.Println("wrong command")
+				t.Log("wrong command")
 			}
 		}
 	}()
 	go func() {
 		defer wg.Done()
-		//var nodeID = "3001"
+		var nodeID = "3001"
 		for {
 			value := <-input2
 			fmt.Println("node2:", value)
@@ -125,6 +188,24 @@ func TestScenario1(t *testing.T) {
 			done2 <- true
 			if value == "exit" {
 				break
+			}
+			switch value {
+			case "step2a":
+				// create three wallets
+				walletAddress1 = ncreateWallet(nodeID)
+				t.Logf("walletAddress1: %s\n", walletAddress1)
+				walletAddress2 = ncreateWallet(nodeID)
+				t.Logf("walletAddress2: %s\n", walletAddress2)
+				walletAddress3 = ncreateWallet(nodeID)
+				t.Logf("walletAddress3: %s\n", walletAddress3)
+			case "step2b":
+				copyFile("blockchain_genesis.db", "blockchain_3001.db")
+			case "step2c":
+				// start NODE_ID=3001
+			case "step2d":
+				// stop NODE_ID=3001
+			default:
+				t.Log("wrong command")
 			}
 		}
 	}()
@@ -154,20 +235,49 @@ func TestScenario1(t *testing.T) {
 	go runCommand1("step1a") // create a wallet and a new blockchain
 	<-done1
 
-	//go runCommand1("step1b") // copy blockchain as genesis blockchain
-	//<-done1
-
-	//go runCommand2("step2a") // create three wallets
-	//<-done1
-
-	//go runCommand1("step1c") // send some coins from CENTRAL to WALLETS with immediately mining
-	//<-done1
-
-	go runCommand1("step1d") // start NODE_ID=3000 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
+	go runCommand1("step1b") // copy blockchain as genesis blockchain
 	<-done1
 
-	go runCommand1("step1z") // stop NODE_ID=3000 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
+	go runCommand2("step2a") // create three wallets
+	<-done2
+	time.Sleep(1000 * time.Millisecond)
+
+	go runCommand1("step1c") // send some coins from CENTRAL to WALLETS with immediately mining
 	<-done1
+	time.Sleep(5000 * time.Millisecond)
+
+	//go runCommand1("step1d") // start NODE_ID=3000 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
+	//<-done1
+	wg.Add(1)
+	server0 := NewServer("3000", "")
+	go func() {
+		defer wg.Done()
+		t.Logf("Starting node %s\n", 3000)
+		server0.Start()
+	}()
+
+	go runCommand2("step2b") // copy genesis blockchain as blockchain for NODE_ID=3001
+	<-done2
+
+	//go runCommand2("step2c") // start NODE_ID=3001 - it will download all the blocks from CENTRAL
+	//<-done2
+	wg.Add(1)
+	server1 := NewServer("3001", "")
+	go func() {
+		defer wg.Done()
+		t.Logf("Starting node %s\n", 3001)
+		server1.Start()
+	}()
+
+	//go runCommand2("step2d") // stop NODE_ID=3001
+	//<-done2
+	time.Sleep(5000 * time.Millisecond)
+	server1.Stop()
+
+	//go runCommand1("step1z") // stop NODE_ID=3000 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
+	//<-done1
+	time.Sleep(1000 * time.Millisecond)
+	server0.Stop()
 
 	// stop1
 	go runCommand1("exit")
