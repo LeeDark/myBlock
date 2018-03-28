@@ -7,9 +7,8 @@ import (
 )
 
 var (
-	input1, input2 chan string
-	done1, done2   chan bool
-	wg             sync.WaitGroup
+	input1, input2, input3 chan string
+	done1, done2, done3    chan bool
 )
 
 func TestScenario1(t *testing.T) {
@@ -17,12 +16,18 @@ func TestScenario1(t *testing.T) {
 	defer close(input1)
 	input2 := make(chan string)
 	defer close(input2)
+	input3 := make(chan string)
+	defer close(input3)
 	done1 := make(chan bool)
 	defer close(done1)
 	done2 := make(chan bool)
 	defer close(done2)
+	done3 := make(chan bool)
+	defer close(done3)
 
-	wg.Add(2)
+	var wg sync.WaitGroup
+	wg.Add(3)
+
 	go func() {
 		defer wg.Done()
 		for {
@@ -47,36 +52,56 @@ func TestScenario1(t *testing.T) {
 			}
 		}
 	}()
+	go func() {
+		defer wg.Done()
+		for {
+			value := <-input3
+			fmt.Println("node3:", value)
+
+			done3 <- true
+			if value == "exit" {
+				break
+			}
+		}
+	}()
+
+	runCommand1 := func(command string) {
+		input1 <- command
+	}
+	runCommand2 := func(command string) {
+		input2 <- command
+	}
+	runCommand3 := func(command string) {
+		input3 <- command
+	}
 
 	// command 1: to 1
-	go func() {
-		input1 <- "hello 1"
-	}()
+	go runCommand1("hello 1")
 	<-done1
 
 	// command 2: to 2
-	go func() {
-		input2 <- "hello 2"
-	}()
+	go runCommand2("hello 2")
 	<-done2
 
 	// command 3: to 1
-	go func() {
-		input1 <- "hello 3"
-	}()
+	go runCommand1("hello 3")
 	<-done1
 
+	// command 4: to 3
+	go runCommand3("hello 4")
+	<-done3
+
 	// stop1
-	go func() {
-		input1 <- "exit"
-	}()
+	go runCommand1("exit")
 	<-done1
 
 	// stop2
-	go func() {
-		input2 <- "exit"
-	}()
+	go runCommand2("exit")
 	<-done2
+
+	// stop3
+	go runCommand3("exit")
+	<-done3
 
 	wg.Wait()
 	t.Log("finish")
