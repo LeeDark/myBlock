@@ -21,6 +21,7 @@ func nclearData() {
 	}
 	clearNodeData("3000")
 	clearNodeData("3001")
+	clearNodeData("3002")
 }
 
 func clearNodeData(nodeID string) {
@@ -115,6 +116,27 @@ func nprintChain(t *testing.T, bc *Blockchain) {
 	}
 }
 
+func ngetBalance(t *testing.T, address, nodeID string) int {
+	if !ValidateAddress(address) {
+		t.Error("ERROR: Address is not valid")
+	}
+	bc := NewBlockchain(nodeID)
+	UTXOSet := UTXOSet{bc}
+	defer bc.db.Close()
+
+	balance := 0
+	pubKeyHash := Base58Decode([]byte(address))
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
+	UTXOs := UTXOSet.FindUTXO(pubKeyHash)
+
+	for _, out := range UTXOs {
+		balance += out.Value
+	}
+
+	t.Logf("Balance of '%s': %d\n", address, balance)
+	return balance
+}
+
 func TestScenario1(t *testing.T) {
 	nclearData()
 
@@ -134,7 +156,7 @@ func TestScenario1(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(3)
 
-	var centralAddress string
+	var centralAddress, minerAddress string
 	var walletAddress1, walletAddress2, walletAddress3 string
 
 	go func() {
@@ -204,6 +226,25 @@ func TestScenario1(t *testing.T) {
 				// start NODE_ID=3001
 			case "step2d":
 				// stop NODE_ID=3001
+			case "step2e":
+				// check the balances
+				ngetBalance(t, walletAddress1, nodeID)
+				ngetBalance(t, walletAddress2, nodeID)
+				ngetBalance(t, centralAddress, nodeID)
+			case "step2f":
+				// send some coins without auto-mining
+				bc := NewBlockchain(nodeID)
+				nsendTransaction(t, bc, walletAddress1, walletAddress3, 3, nodeID, false)
+				time.Sleep(5000 * time.Millisecond)
+				nsendTransaction(t, bc, walletAddress2, walletAddress3, 6, nodeID, false)
+				//nprintChain(t, bc)
+				bc.db.Close()
+			case "step2h":
+				// check the balances
+				ngetBalance(t, walletAddress1, nodeID)
+				ngetBalance(t, walletAddress2, nodeID)
+				ngetBalance(t, walletAddress3, nodeID)
+				ngetBalance(t, centralAddress, nodeID)
 			default:
 				t.Log("wrong command")
 			}
@@ -211,6 +252,7 @@ func TestScenario1(t *testing.T) {
 	}()
 	go func() {
 		defer wg.Done()
+		var nodeID = "3002"
 		for {
 			value := <-input3
 			fmt.Println("node3:", value)
@@ -218,6 +260,14 @@ func TestScenario1(t *testing.T) {
 			done3 <- true
 			if value == "exit" {
 				break
+			}
+			switch value {
+			case "step3a":
+				minerAddress = ncreateWallet(nodeID)
+				t.Logf("minerAddress: %s\n", minerAddress)
+				copyFile("blockchain_genesis.db", "blockchain_3002.db")
+			default:
+				t.Log("wrong command")
 			}
 		}
 	}()
@@ -244,40 +294,100 @@ func TestScenario1(t *testing.T) {
 
 	go runCommand1("step1c") // send some coins from CENTRAL to WALLETS with immediately mining
 	<-done1
-	time.Sleep(5000 * time.Millisecond)
+	time.Sleep(7000 * time.Millisecond)
 
 	//go runCommand1("step1d") // start NODE_ID=3000 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
 	//<-done1
 	wg.Add(1)
-	server0 := NewServer("3000", "")
+	server1 := NewServer("3000", "")
 	go func() {
 		defer wg.Done()
 		t.Log("Starting node 3000")
-		server0.Start()
+		server1.Start()
 	}()
+
+	//////////
 
 	go runCommand2("step2b") // copy genesis blockchain as blockchain for NODE_ID=3001
 	<-done2
+	time.Sleep(1000 * time.Millisecond)
 
 	//go runCommand2("step2c") // start NODE_ID=3001 - it will download all the blocks from CENTRAL
 	//<-done2
 	wg.Add(1)
-	server1 := NewServer("3001", "")
+	server2 := NewServer("3001", "")
 	go func() {
 		defer wg.Done()
 		t.Log("Starting node 3001")
-		server1.Start()
+		server2.Start()
 	}()
 
 	//go runCommand2("step2d") // stop NODE_ID=3001
 	//<-done2
-	time.Sleep(5000 * time.Millisecond)
-	server1.Stop()
+	time.Sleep(7000 * time.Millisecond)
+	server2.Stop()
+
+	go runCommand2("step2e") // check the balances
+	<-done2
+
+	//////////
+	fmt.Println("PREPARE 3002")
+
+	go runCommand3("step3a") // prepare NODE_ID=3002 as MINER
+	<-done3
+	time.Sleep(1000 * time.Millisecond)
+
+	fmt.Println("START 3002")
+
+	//go runCommand3("step3b") // start NODE_ID=3002
+	//<-done3
+	wg.Add(1)
+	server3 := NewServer("3002", minerAddress)
+	go func() {
+		defer wg.Done()
+		t.Log("Starting node 3002")
+		server3.Start()
+	}()
+	time.Sleep(1000 * time.Millisecond)
+
+	fmt.Println("SEND SOME COINS WITHOUT AUTO-MINTING")
+
+	go runCommand2("step2f") // send some coins without auto-mining
+	<-done2
+	time.Sleep(7000 * time.Millisecond)
+
+	fmt.Println("START 3001")
+
+	//go runCommand2("step2g") // start/sleep/stop NODE_ID=3001 - it will ...
+	//<-done2
+	wg.Add(1)
+	server2 = NewServer("3001", "")
+	go func() {
+		defer wg.Done()
+		t.Log("Starting node 3001")
+		server2.Start()
+	}()
+	time.Sleep(7000 * time.Millisecond)
+	fmt.Println("STOP 3001")
+	server2.Stop()
+
+	fmt.Println("CHECK THE BALANCES")
+	go runCommand2("step2h") // check the balances
+	<-done2
+
+	//////////
+
+	//go runCommand3("step3z") // stop NODE_ID=3002 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
+	//<-done3
+	time.Sleep(1000 * time.Millisecond)
+	fmt.Println("STOP 3002")
+	server3.Stop()
 
 	//go runCommand1("step1z") // stop NODE_ID=3000 - THE NODE MUST BE RUNNING UNTIL THE END OF THE SCENARIO
 	//<-done1
 	time.Sleep(1000 * time.Millisecond)
-	server0.Stop()
+	fmt.Println("STOP 3000")
+	server1.Stop()
 
 	// stop1
 	go runCommand1("exit")
@@ -293,4 +403,5 @@ func TestScenario1(t *testing.T) {
 
 	wg.Wait()
 	t.Log("finish")
+	nclearData()
 }
