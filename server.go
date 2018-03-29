@@ -439,7 +439,7 @@ func (s *TCPServer) handleTx(request []byte) {
 		}
 	} else {
 		fmt.Printf("miningAddress: %s, len(mempool): %d\n", s.miningAddress, len(s.mempool))
-		if len(s.mempool) >= 1 && len(s.miningAddress) > 0 {
+		if len(s.mempool) >= 2 && len(s.miningAddress) > 0 {
 		MineTransactions:
 			fmt.Println("MineTransactions...")
 			var txs []*Transaction
@@ -464,7 +464,7 @@ func (s *TCPServer) handleTx(request []byte) {
 			UTXOSet.Reindex()
 
 			nanonow := time.Now().Format(timeFormat)
-			fmt.Println("nodeID: %s, %s: New block is mined!", s.nodeID, nanonow)
+			fmt.Printf("nodeID: %s, %s: New block is mined!", s.nodeID, nanonow)
 
 			for _, tx := range txs {
 				txID := hex.EncodeToString(tx.ID)
